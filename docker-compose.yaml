@@ -1,0 +1,472 @@
+networks:
+  minimedia:
+    driver: bridge
+volumes:
+  redis_data:
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: generate_password
+      POSTGRES_DB: minimedia
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    networks:
+      - minimedia
+
+  minimedia_scanner:
+    image: musicmovearr/minimediascanner:latest
+    container_name: MiniMediaScanner
+    user: "1000:1000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    volumes:
+      - ./music:/music
+    networks:
+      - minimedia
+    depends_on:
+      - postgres
+    environment:
+      - CRON=0 0/15 * ? * * *
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - CONNECTIONSTRING=Host=postgres;Username=postgres;Password=generate_password;Database=minimedia;Pooling=true;MinPoolSize=5;MaxPoolSize=10;ApplicationName=MiniMediaScanner;Command Timeout=1024;
+      #all commands, a little bit overkill, only use what you need
+      #1. import
+      #2. convert files from FLAC to Opus 128kbit
+      #3. pull all metadata from all services
+      #4. tag all files
+      #5. move untagged files
+      #6. grab covers, extract first then online
+      #7. submit acoustid fingerprints to AcoustId Service
+      - COMMAND=import:convert:updatedeezer:updatemb:updatespotify:updatetidal:grouptaggingdeezermetadata:grouptaggingmbmetadata:grouptaggingspotifymetadata:grouptaggingtidalmetadata:tagmissingdeezermetadata:tagmissingmetadata:tagmissingspotifymetadata:tagmissingtidalmetadata:moveuntaggedfile:coverextract:coverartarchive:coverartdeezer:coverartdiscogs:coverartspotify:coverarttidal:acoustidsubmit:acoustidcheck
+      #import
+      - IMPORT_PATH=/music
+      - IMPORT_UPDATE_MB=true
+      - IMPORT_FORCE=true
+      - IMPORT_PREVENT_UPDATE_WITHIN_DAYS=7
+      - IMPORT_SPLIT_ARTISTS=true
+      #grouptaggingdeezermetadata
+      #- GROUPTAGGINGDEEZERMETADATA_ARTIST=
+      #- GROUPTAGGINGDEEZERMETADATA_ALBUM=
+      - GROUPTAGGINGDEEZERMETADATA_CONFIRM=true
+      - GROUPTAGGINGDEEZERMETADATA_OVERWRITE_TAG=true
+      - GROUPTAGGINGDEEZERMETADATA_OVERWRITEARTIST=true
+      - GROUPTAGGINGDEEZERMETADATA_OVERWRITEALBUMARTIST=true
+      - GROUPTAGGINGDEEZERMETADATA_OVERWRITEALBUM=true
+      - GROUPTAGGINGDEEZERMETADATA_OVERWRITETRACK=true
+      #grouptaggingmbmetadata
+      #- GROUPTAGGINGMETADATA_ARTIST=
+      #- GROUPTAGGINGMETADATA_ALBUM=
+      - GROUPTAGGINGMETADATA_CONFIRM=true
+      - GROUPTAGGINGMETADATA_OVERWRITE_TAG=true
+      #grouptaggingspotifymetadata
+      #- GROUPTAGGINGSPOTIFYMETADATA_ARTIST=
+      #- GROUPTAGGINGSPOTIFYMETADATA_ALBUM=
+      - GROUPTAGGINGSPOTIFYMETADATA_CONFIRM=true
+      - GROUPTAGGINGSPOTIFYMETADATA_OVERWRITE_TAG=true
+      - GROUPTAGGINGSPOTIFYMETADATA_OVERWRITEARTIST=true
+      - GROUPTAGGINGSPOTIFYMETADATA_OVERWRITEALBUMARTIST=true
+      - GROUPTAGGINGSPOTIFYMETADATA_OVERWRITEALBUM=true
+      - GROUPTAGGINGSPOTIFYMETADATA_OVERWRITETRACK=true
+      #grouptaggingtidalmetadata
+      #- GROUPTAGGINGTIDALMETADATA_ARTIST=
+      #- GROUPTAGGINGTIDALMETADATA_ALBUM=
+      - GROUPTAGGINGTIDALMETADATA_CONFIRM=true
+      - GROUPTAGGINGTIDALMETADATA_OVERWRITE_TAG=true
+      - GROUPTAGGINGTIDALMETADATA_OVERWRITEARTIST=true
+      - GROUPTAGGINGTIDALMETADATA_OVERWRITEALBUMARTIST=true
+      - GROUPTAGGINGTIDALMETADATA_OVERWRITEALBUM=true
+      - GROUPTAGGINGTIDALMETADATA_OVERWRITETRACK=true
+      #tagmissingdeezermetadata
+      #- TAGMISSINGDEEZERMETADATA_ARTIST=
+      #- TAGMISSINGDEEZERMETADATA_ALBUM=
+      - TAGMISSINGDEEZERMETADATA_CONFIRM=true
+      - TAGMISSINGDEEZERMETADATA_OVERWRITE_TAG=true
+      - TAGMISSINGDEEZERMETADATA_OVERWRITEARTIST=true
+      - TAGMISSINGDEEZERMETADATA_OVERWRITEALBUMARTIST=true
+      - TAGMISSINGDEEZERMETADATA_OVERWRITEALBUM=true
+      - TAGMISSINGDEEZERMETADATA_OVERWRITETRACK=true
+      #tagmissingmetadata
+      #- TAGMISSINGMETADATA_ARTIST=
+      #- TAGMISSINGMETADATA_ALBUM=
+      - TAGMISSINGMETADATA_ACOUSTID=xxxxx
+      - TAGMISSINGMETADATA_WRITE=true
+      - TAGMISSINGMETADATA_OVERWRITE_TAG=true
+      - TAGMISSINGMETADATA_MATCH_PERCENTAGE_TAGS=80
+      - TAGMISSINGMETADATA_MATCH_PERCENTAGE_ACOUSTID=98
+      #tagmissingspotifymetadata
+      #- TAGMISSINGSPOTIFYMETADATA_ARTIST=
+      #- TAGMISSINGSPOTIFYMETADATA_ALBUM=
+      - TAGMISSINGSPOTIFYMETADATA_CONFIRM=true
+      - TAGMISSINGSPOTIFYMETADATA_OVERWRITE_TAG=true
+      - TAGMISSINGSPOTIFYMETADATA_OVERWRITEARTIST=true
+      - TAGMISSINGSPOTIFYMETADATA_OVERWRITEALBUMARTIST=true
+      - TAGMISSINGSPOTIFYMETADATA_OVERWRITEALBUM=true
+      - TAGMISSINGSPOTIFYMETADATA_OVERWRITETRACK=true
+      #tagmissingtidalmetadata
+      #- TAGMISSINGTIDALMETADATA_ARTIST=
+      #- TAGMISSINGTIDALMETADATA_ALBUM=
+      - GROUPTAGGINGTIDALMETADATA_CONFIRM=true
+      - TAGMISSINGTIDALMETADATA_OVERWRITE_TAG=true
+      - TAGMISSINGTIDALMETADATA_OVERWRITEARTIST=true
+      - TAGMISSINGTIDALMETADATA_OVERWRITEALBUMARTIST=true
+      - TAGMISSINGTIDALMETADATA_OVERWRITEALBUM=true
+      - TAGMISSINGTIDALMETADATA_OVERWRITETRACK=
+      #moveuntaggedfile
+      #- MOVEUNTAGGEDFILES_ARTIST=
+      #- MOVEUNTAGGEDFILES_ALBUM=
+      #- MOVEUNTAGGEDFILES_TARGET_FOLDER=
+      - MOVEUNTAGGEDFILES_OVERWRITE=true
+      #- MOVEUNTAGGEDFILES_FILE_FORMAT=
+      #- MOVEUNTAGGEDFILES_DIRECTORY_FORMAT=
+      - MOVEUNTAGGEDFILES_DIRECTORY_SEPARATOR=_
+      - MOVEUNTAGGEDFILES_DRY_RUN=true
+      #updatedeezer
+      #- PROXY_FILE=
+      #- PROXY=
+      #- PROXY_MODE=#can be any of: Random, RoundRobin, StickyTillError, RotateTime, PerArtist
+      - UPDATEDEEZER_SAVE_TRACK_TOKEN=false
+      - UPDATEDEEZER_SAVE_PREVIEW_URL=false
+      - UPDATEDEEZER_THREADS=1
+      - UPDATEDEEZER_PREVENT_UPDATE_WITHIN_DAYS=7
+      - UPDATEDEEZER_NONPULLED_ARTISTS=true
+      #updatemb
+      #- UPDATEMB_ARTIST=
+      - UPDATEMB_PREVENT_UPDATE_WITHIN_DAYS=7
+      #updatespotify
+      #- UPDATESPOTIFY_ARTIST=
+      #- UPDATESPOTIFY_SPOTIFY_CLIENT_ID=
+      #- UPDATESPOTIFY_SPOTIFY_SECRET_ID=
+      - UPDATESPOTIFY_API_DELAY=10
+      - UPDATESPOTIFY_PREVENT_UPDATE_WITHIN_DAYS=7
+      #- UPDATESPOTIFY_ARTIST_FILE=
+      #updatetidal
+      #- UPDATETIDAL_ARTIST=
+      #- UPDATETIDAL_TIDAL_CLIENT_ID=
+      #- UPDATETIDAL_TIDAL_SECRET_ID=
+      #- UPDATETIDAL_COUNTRY_CODE=
+      #- PROXY_FILE=
+      #- PROXY=
+      #- PROXY_MODE=#can be any of: Random, RoundRobin, StickyTillError, RotateTime, PerArtist
+      - UPDATETIDAL_PREVENT_UPDATE_WITHIN_DAYS=7
+      #- UPDATETIDAL_ARTIST_FILE=
+      #- UPDATETIDAL_NONPULLED_ARTISTS=
+      - UPDATETIDAL_IGNORE_ARTIST_ALBUM_AMOUNT=500 #>500 is likely AI content
+      #convert
+      #- CONVERT_ARTIST=
+      #- CONVERT_FROM_EXTENSION=flac
+      #- CONVERT_TO_EXTENSION=opus
+      #- CONVERT_CODEC=opus
+      #- CONVERT_BITRATE=128
+      #coverextract
+      #- COVEREXTRACT_ARTIST=
+      #- COVEREXTRACT_ALBUM=
+      - COVEREXTRACT_FILENAME=cover.jpg
+      #coverartarchive
+      #- COVERARTARCHIVE_ARTIST=
+      #- COVERARTARCHIVE_ALBUM=
+      - COVERARTARCHIVE_FILENAME=cover.jpg
+      #coverartdeezer
+      #- COVERARTDEEZER_ARTIST=
+      #- COVERARTDEEZER_ALBUM=
+      - COVERARTDEEZER_ALBUM_FILENAME=cover.jpg
+      - COVERARTDEEZER_ARTIST_FILENAME=cover.jpg
+      #coverartdiscogs
+      #- COVERARTDISCOGS_ARTIST=
+      #- COVERARTDISCOGS_ALBUM=
+      - COVERARTDISCOGS_ALBUM_FILENAME=cover.jpg
+      - COVERARTDISCOGS_ARTIST_FILENAME=cover.jpg
+      - COVERARTDISCOGS_TOKEN=xxxxxxx
+      #coverartspotify
+      #- COVERARTSPOTIFY_ARTIST=
+      #- COVERARTSPOTIFY_ALBUM=
+      - COVERARTSPOTIFY_ALBUM_FILENAME=cover.jpg
+      - COVERARTSPOTIFY_ARTIST_FILENAME=cover.jpg
+      #coverarttidal
+      #- COVERARTTIDAL_ARTIST=
+      #- COVERARTTIDAL_ALBUM=
+      - COVERARTTIDAL_ALBUM_FILENAME=cover.jpg
+      - COVERARTTIDAL_ARTIST_FILENAME=cover.jpg
+      #acoustidsubmit
+      - ACOUSTIDSUBMISSION_CLIENTKEY=xxxxxx
+      - ACOUSTIDSUBMISSION_USERKEY=xxxxxx
+      #acoustidcheck
+      - ACOUSTIDCHECK_CLIENTKEY=xxxxxx
+
+
+  #1. Pull Playlists from all possible services
+  #2. Sync towards Subsonic(MiniMedia)
+  minimedia_playlists_sync_plex_to_minimedia:
+    image: musicmovearr/minimediaplaylists:latest
+    container_name: MiniMedia_PlaylistSync
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - minimedia
+    depends_on:
+      - postgres
+    environment:
+      - COMMAND=pullplex:pullsubsonic:pulljellyfin:sync
+      - CONNECTIONSTRING=Host=postgres;Username=postgres;Password=generate_password;Database=minimedia;Pooling=true;MinPoolSize=5;MaxPoolSize=10;ApplicationName=MiniMediaPlaylistSync;Command Timeout=1024;
+      - CRON=0 0 0/3 ? * * *
+      - PGID=1000
+      - PUID=1000
+      - TZ=UTC
+
+      #Plex Pull Options
+      - PULLPLEX_TOKEN=
+      - PULLPLEX_TRACK_LIMIT=
+      - PULLPLEX_URL=
+      - PULLSUBSONIC_LIKED_PLAYLIST_NAME=Liked Tracks - Plex
+      #Plex Snapshot retention (with defaults filled in)
+      - PULLPLEX_KEEP_HOURLY=24
+      - PULLPLEX_KEEP_DAILY=7
+      - PULLPLEX_KEEP_WEEKLY=4
+      - PULLPLEX_KEEP_MOTHLY=12
+      - PULLPLEX_KEEP_YEARLY=10
+
+      #SubSonic Pull Options
+      - PULLSUBSONIC_USERNAME=
+      - PULLSUBSONIC_PASSWORD=
+      - PULLSUBSONIC_URL=
+      - PULLSUBSONIC_LIKED_PLAYLIST_NAME=Liked Tracks - Subsonic
+      #Navidrome Snapshot retention (with defaults filled in)
+      - PULLSUBSONIC_KEEP_HOURLY=24
+      - PULLSUBSONIC_KEEP_DAILY=7
+      - PULLSUBSONIC_KEEP_WEEKLY=4
+      - PULLSUBSONIC_KEEP_MOTHLY=12
+      - PULLSUBSONIC_KEEP_YEARLY=10
+
+      #Navidrome Pull options
+      - PULLNAVIDROME_USERNAME=
+      - PULLNAVIDROME_PASSWORD=
+      - PULLNAVIDROME_URL=
+      - PULLNAVIDROME_LIKED_PLAYLIST_NAME=Liked Tracks - Navidrome
+      #Navidrome Snapshot retention (with defaults filled in)
+      - PULLNAVIDROME_KEEP_HOURLY=24
+      - PULLNAVIDROME_KEEP_DAILY=7
+      - PULLNAVIDROME_KEEP_WEEKLY=4
+      - PULLNAVIDROME_KEEP_MOTHLY=12
+      - PULLNAVIDROME_KEEP_YEARLY=10
+
+      #Jellyfin Pull options
+      - PULLJELLYFIN_USERNAME=
+      - PULLJELLYFIN_PASSWORD=
+      - PULLJELLYFIN_URL=
+      - PULLJELLYFIN_FAVORITE_PLAYLIST_NAME=Liked Tracks - Jellyfin
+      #Jellyfin Snapshot retention (with defaults filled in)
+      - PULLJELLYFIN_KEEP_HOURLY=24
+      - PULLJELLYFIN_KEEP_DAILY=7
+      - PULLJELLYFIN_KEEP_WEEKLY=4
+      - PULLJELLYFIN_KEEP_MOTHLY=12
+      - PULLJELLYFIN_KEEP_YEARLY=10
+
+      #Spotify Pull options
+      - PULLSPOTIFY_SPOTIFY_CLIENT_ID=
+      - PULLSPOTIFY_SPOTIFY_SECRET_ID=
+      - PULLSPOTIFY_SPOTIFY_AUTH_REDIRECT_URI=
+      - PULLSPOTIFY_SPOTIFY_AUTH_CALLBACK_LISTENER=http://*:5000/callback/
+      - PULLSPOTIFY_OWNER_NAME=
+      - PULLSPOTIFY_LIKED_PLAYLIST_NAME=Liked Tracks - Spotify
+      #Spotify Snapshot retention (with defaults filled in)
+      - PULLSPOTIFY_KEEP_HOURLY=24
+      - PULLSPOTIFY_KEEP_DAILY=7
+      - PULLSPOTIFY_KEEP_WEEKLY=4
+      - PULLSPOTIFY_KEEP_MOTHLY=12
+      - PULLSPOTIFY_KEEP_YEARLY=10
+
+      #Tidal Pull options
+      - PULLTIDAL_CLIENT_ID=
+      - PULLTIDAL_SECRET_ID=
+      - PULLTIDAL_AUTH_REDIRECT_URI=
+      - PULLTIDAL_COUNTRY_CODE=US
+      - PULLTIDAL_OWNER_NAME=
+      - PULLTIDAL_AUTH_CALLBACK_LISTENER=http://*:5000/callback/
+      - PULLTIDAL_LIKED_PLAYLIST_NAME=Liked Tracks - Tidal
+      #Tidal Snapshot retention (with defaults filled in)
+      - PULLTIDAL_KEEP_HOURLY=24
+      - PULLTIDAL_KEEP_DAILY=7
+      - PULLTIDAL_KEEP_WEEKLY=4
+      - PULLTIDAL_KEEP_MOTHLY=12
+      - PULLTIDAL_KEEP_YEARLY=10
+
+      #Generic options
+      - SYNC_PLAYLIST_THREADS=5
+      - SYNC_TRACK_THREADS=1
+      - SYNC_TRACK_ORDER=true
+      - SYNC_SECOND_SEARCH_WITHOUT_ALBUM=true
+      - SYNC_DEEP_SEARCH=true
+      - SYNC_MATCHPERCENTAGE=90
+
+      #sync settings Plex > Navidrome
+      - SYNC_FROM_SERVICE=plex
+      - SYNC_FROM_NAME=https://plex...
+      - SYNC_FROM_LIKE_PLAYLIST_NAME=❤️ Tracks
+      - SYNC_FROM_SKIP_PLAYLISTS=Recently Played
+      - SYNC_FROM_SKIP_PREFIX_PLAYLISTS=Recently Played:#
+      - SYNC_FROM_PLAYLISTNAME=
+      - SYNC_FROM_PLEX_TOKEN=
+      - SYNC_FROM_SUBSONIC_USERNAME=
+      - SYNC_FROM_SUBSONIC_PASSWORD=
+      - SYNC_FROM_JELLYFIN_USERNAME=
+      - SYNC_FROM_JELLYFIN_PASSWORD=
+      - SYNC_FROM_TIDAL_COUNTRY_CODE=
+
+      - SYNC_TO_SERVICE=subsonic
+      - SYNC_TO_NAME=https://...
+      - SYNC_TO_SUBSONIC_USERNAME=
+      - SYNC_TO_SUBSONIC_PASSWORD=
+      - SYNC_TO_LIKE_PLAYLIST_NAME=Liked Tracks - Subsonic
+      - SYNC_TO_PLAYLISTNAME=
+      - SYNC_TO_PLAYLISTPREFIX=
+      - SYNC_TO_PLEX_TOKEN=
+      - SYNC_TO_JELLYFIN_USERNAME=
+      - SYNC_TO_JELLYFIN_PASSWORD=
+      - SYNC_TO_TIDAL_COUNTRY_CODE=
+      - SYNC_METADATAAPIBASEURL=
+
+
+  minimedia_metadataapi:
+    container_name: MiniMedia_MetadataAPI
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    hostname: MiniMediaMetadataAPI
+    image: musicmovearr/minimediametadataapi:latest
+    ports:
+      - target: 8080
+        published: "8086"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./MiniMediaMetadataApi_appsettings.json
+        target: /app/appsettings.json
+    networks:
+      - minimedia
+    depends_on:
+      - postgres
+      - minimedia_scanner
+
+  minimedia_sonicserver:
+    container_name: MiniMedia_SonicServer
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    hostname: MiniMediaSonicServer
+    image: musicmovearr/minimediasonicserver:latest
+    ports:
+      - target: 8080
+        published: "8085"
+        protocol: tcp
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    networks:
+      - minimedia
+    depends_on:
+      - postgres
+      - redis
+      - minimedia_scanner
+    volumes:
+      - type: bind
+        source: ./MiniMediaSonicServer_appsettings.json
+        target: /app/appsettings.json
+      - ./music:/music:ro
+      - ./playlists:/playlists:ro
+
+  redis:
+    image: redis:7.4
+    restart: unless-stopped
+    container_name: redis
+    ports:
+      - 6379:6379
+    command: redis-server --save 60 1 --loglevel warning --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - minimedia
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  musicmover:
+    image: musicmovearr/musicmover:latest
+    container_name: MusicMover
+    user: "1000:1000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4092M
+    networks:
+      - minimedia
+    depends_on:
+      - postgres
+      - minimedia_metadataapi
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - CRON=0 0/5 * ? * *
+      - MOVE_FROM=/downloads
+      - MOVE_TARGET=/music
+      - MOVE_MOVE_UNTAGGABLE_FILES_PATH=/untaggable
+      - MOVE_ACOUSTIDAPIKEY=xxxxxxxx
+      - MOVE_ALWAYSCHECKACOUSTID=true
+      - MOVE_CONTINUESCANERROR=true
+      - MOVE_CREATEALBUMDIRECTORY=true
+      - MOVE_CREATEARTISTDIRECTORY=true
+      - MOVE_DELETEDUPLICATEFROM=true
+      - MOVE_ARTIST_DIRECTORY_FORMAT={CleanArtistUpper:substr(0,1)}/{CleanArtistUpper:substr(1,1)}/{CleanArtist}
+      - MOVE_ALBUM_DIRECTORY_FORMAT={CleanAlbum}
+      - MOVE_FILEFORMAT={CleanArtist} - {Album} - {DiscNumber:cond:<=1?{TrackNumber:00}|{DiscNumber:00}-{TrackNumber:00}} - {Title}
+      - MOVE_FIXFILECORRUPTION=true
+      - MOVE_METADATAAPIBASEURL=http://minimedia_metadataapi:8086
+      - MOVE_METADATAAPIPROVIDERS=Discogs:Deezer:MusicBrainz:Tidal
+      - MOVE_ONLYFILEMATCHING=false
+      - MOVE_ONLYMOVEWHENTAGGED=true
+      - MOVE_OVERWRITEALBUM=true
+      - MOVE_OVERWRITEALBUMARTIST=true
+      - MOVE_OVERWRITEARTIST=true
+      - MOVE_OVERWRITETRACK=true
+      - MOVE_PARALLEL=true
+      - MOVE_PREFERREDFILEEXTENSIONS=opus:flac:m4a
+      - MOVE_SEARCHBYTAGNAMES=true
+      - MOVE_UPDATEARTISTTAGS=true
+      - MOVE_VARIOUSARTISTS=true
+      - MOVE_TIDALCLIENTID=
+      - MOVE_TIDALCLIENTSECRET=
+      - MOVE_TIDALCLIENTSECRET=
+      - MOVE_DEBUG=false
+      - MOVE_METADATA_MATCH_PERCENTAGE=80
+      - MOVE_TIDAL_MATCH_PERCENTAGE=80
+      - MOVE_MUSICBRAINZ_MATCH_PERCENTAGE=80
+      - MOVE_ACOUSTID_MATCH_PERCENTAGE=98
+      #- MOVE_METADATA_HANDLER=FFmpeg
+      - MOVE_METADATA_HANDLER=ATL_Core
+      - MOVE_DUMP_COVER_FILENAME=cover.jpg
+      - MOVE_TRUST_ACOUSTID_WHEN_TAGGING_FAILED=true
+      - MOVE_ONLY_NEW_FILES=true
+    volumes:
+    - ./downloads:/downloads
+    - ./untaggable:/untaggable
+    - ./music:/music:ro

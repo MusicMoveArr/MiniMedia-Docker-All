@@ -1,0 +1,15 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "DatabaseConfiguration": {
+    "ConnectionString": "Host=postgres;Username=postgres;Password=generate_password;Database=minimedia;Pooling=true;MinPoolSize=5;MaxPoolSize=20;ApplicationName=MiniMediaMetadataApi;"
+  },
+  "Prometheus": {
+    "MetricsUrl": "/metrics"
+  }
+}

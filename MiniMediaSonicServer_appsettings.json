@@ -1,0 +1,48 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "DatabaseConfiguration": {
+    "ConnectionString": "Host=postgres;Username=postgres;Password=generate_password;Database=minimedia;Pooling=true;MinPoolSize=50;MaxPoolSize=200;ApplicationName=MiniMediaSonicServer;"
+  },
+  "tls": {
+    "Certificate":
+    {
+      "CertificateFile": "/certs/certificate.pem",
+      "KeyFile": "/certs/privatekey.pem",
+      "Password": ""
+    }
+  },
+  "EncryptionKeys": {
+    "UserPasswordKey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "Shares": {
+    "BaseUrl": "https://change.me"
+  },
+  "Redis": {
+    "ConnectionString": "redis:6379",
+    "Expiry": "72:00:00",
+    "SlidingExpiration": "72:00:00"
+  },
+  "MusicCache": {
+    "Path": "",
+    "DirectoryFormat": "{CleanArtistUpper:substr(0,1)}/{CleanArtistUpper:substr(1,1)}/{CleanArtist}/{Album}",
+    "DirectorySeparator": "_",
+    "FileFormat": "{CleanArtist} - {Album} - {DiscNumber:cond:<=1?{TrackNumber:00}|{DiscNumber:00}-{TrackNumber:00}} - {Title}",
+    "MaxCacheSize": 1000000000,
+    "MaxFileSize": 50000000,
+    "ExposeCachedFilePath": false
+  },
+  "Jobs": {
+    "PlaylistImportCron": "0 0 0 * * ?",
+    "NavidromeSmartPlaylistRefreshCron": "0 0 0 * * ?",
+    "PlaylistFixTracksCron": "0 0 0 * * ?",
+    "ReIndexSearchCron": "0 0 0 * * ?",
+    "ImportLastFmScrobblesCron": "0 0 0 * * ?",
+    "AutoLikeCron": "0 0 0 * * ?"
+  }
+}
